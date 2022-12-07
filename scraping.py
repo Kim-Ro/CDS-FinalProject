@@ -26,27 +26,25 @@ linklist = ["https://op.europa.eu/en/browse-by-subject?p_p_id=eu_europa_publicat
             "https://op.europa.eu/en/browse-by-subject?p_p_id=eu_europa_publications_portlet_pagination_PaginationPortlet_INSTANCE_eYu9jIuZAUpO&p_p_lifecycle=1&p_p_state=normal&p_p_mode=view&facet.collection=EUPub&facet.collection=EULex&facet.collection=EUSummariesOfLegislation&facet.documentFormat=PDF&facet.language=ENG&facet.documentYear=2021,2020,2019,2022&facet.eurovoc.domain=52&selectedSubjectId=52&elementType=0&sortBy=PUBLICATION_DATE-DESC&SEARCH_TYPE=BROWSE_BY_SUBJECT&QUERY_ID=275342615&&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&facet.language=ENG&resultsPerPage=50&startRow=951&QUERY_ID=275342615"]
 
 #scraping the PDF-download links from the search pages by looping over the list of links
-i = 0
 ugly_links = []
 for link in linklist:
-    url = linklist[i]
+    url = link
     html_text = requests.get(url)
     soup = BeautifulSoup(html_text.text, features = "html.parser")
     get_pdf_links = soup.findAll("a", {"data-format": "PDF"}) #making sure it only downloads .pdf files and not .doc files
     ugly_links = ugly_links + get_pdf_links
-    i += 1
 
 print(ugly_links)
 
 #looping over the ugly_links list to extract the url that is hidden as an uri
 document_links = []
+proxy = {"https": "http://51.159.163.198:88", "https": "http://46.227.37.145:1088", "https": "http://95.85.254.138:5678"}
 for item in ugly_links:
     uri = item.get("data-uri")
-    amp_url = "https://op.europe.eu" + uri
+    amp_url = "https://op.europa.eu" + uri
     url = re.sub('amp;','',amp_url) #removing 'amp;' from the link that is added in scraping
     document_links.append(url)
 
-print(document_links)
 
 #downloading PDF files to data folder
 #def download_file(link, folder):

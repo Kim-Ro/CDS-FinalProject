@@ -7,8 +7,8 @@ The repository for the final project (exam) of the Cultural Data Science at Aarh
 
 ## Scraping.py
 This file contains the python code used for the scraping of the publications on the topic of environment by the [EU publications office](https://op.europa.eu/en/home).
-Executed on 07/12/2022 for the project.
+Executed on 20/12/2022 for the project.
 
 ## data
-This folder contains the scraped PDF's from the 07/12/2022.
+This folder contains the scraped PDF's from the 20/12/2022.
 

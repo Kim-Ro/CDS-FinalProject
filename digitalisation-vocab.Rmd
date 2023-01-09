@@ -1,0 +1,86 @@
+---
+title: "Digitalisation vocabulary"
+author: "Kim Lea Rothe"
+date: "2023-01-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
+
+library(tidyverse)
+library(here)
+library(pdftools)
+library(tidytext)
+library(textdata)
+library(ggwordcloud)
+
+```
+
+## Load documents in R
+
+In a first step, 50 documents are loaded into a dataframe in R. The full text of the documents are then prepared for a wordcount to figure out which words are most frequently used. Numbers and stop words are eliminated in the preparation.
+
+```{r get documents}
+list <- (1:50)
+i = 1
+df <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(df) <- c('document_text', 'text_full')
+
+for (number in list) {
+  document_name = list[[i]]
+  name = toString(document_name)
+  document_path <- here("data-digitalisation",paste0(name))
+  document_text <- pdf_text(document_path)
+  document_df <- data.frame(document_text) %>% 
+    mutate(text_full = str_split(document_text, pattern = '\\n')) %>% 
+    unnest(text_full) %>% 
+    mutate(text_full = str_trim(text_full))
+  df <- rbind(df, document_df)
+  i <- i+1
+  }
+```
+
+```{r tokenize}
+digitalisation_tokens <- df %>% 
+  unnest_tokens(word, text_full)
+```
+
+```{r stopwords}
+digitalisation_stop <- digitalisation_tokens %>% 
+  anti_join(stop_words) 
+```
+
+```{r skip-numbers}
+digitalisation_no_numeric <- digitalisation_stop %>% 
+  filter(is.na(as.numeric(word)))
+```
+
+## Wordcount and Visualization
+
+The words are then counted and visualized in a word cloud showing the 100 most used words.
+
+```{r count-words}
+digitalisation_wc <- digitalisation_no_numeric %>% 
+  count(word) %>% 
+  arrange(-n)
+digitalisation_wc
+```
+
+```{r wordcloud-prep}
+
+digitalisation_top100 <- digitalisation_no_numeric %>% 
+  count(word) %>% 
+  arrange(-n) %>% 
+  head(100)
+```
+
+```{r wordcloud}
+ggplot(data = digitalisation_top100, aes(label = word, size = n)) +
+  geom_text_wordcloud_area(aes(color = n), shape = "oval") +
+  scale_size_area(max_size = 8) +
+  scale_color_gradientn(colors = c("darkgreen","blue","red")) +
+  theme_minimal()
+```

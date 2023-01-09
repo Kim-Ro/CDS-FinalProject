@@ -1,0 +1,65 @@
+---
+title: "main"
+author: "Kim Lea Rothe"
+date: "2023-01-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
+
+library(tidyverse)
+library(here)
+library(pdftools)
+library(tidytext)
+library(textdata) 
+library(ggwordcloud)
+
+get_sentiments(lexicon = "nrc")
+
+```
+
+
+## Preparation of data in R
+
+To load the documents in R through iteration, there is a list created first with the numbers 1-1000, that are the names of the scraped documents in the data folder.
+
+Another step to take before the iteration is creating an empty dataframe and the digitalization vocabulary as an ??? to only load the relevant pages into the dataframe.
+
+The iteration, then, loads each document into R, searches the text for the relevant vocabulary and only saves the relevant pages to the dataframe.
+
+```{r get documents, filter for relevant pages}
+list <- (1:1000)
+i = 1
+#create empty df
+
+for (number in list) {
+  document_name = list[[i]]
+  name = toString(document_name)
+  #load text into R
+  document_path <- here("data-environment",paste0(name))
+  document_text <- pdf_text(document_path)
+  #search text for digitalization vocab 
+  #-> output: pages that are concerned with digitalization
+  
+  #add pages that are concerned with digitalization to a df
+  #-> variable1: text; variable2: page number; variable3: text from that page
+  
+  i <- i+1
+  }
+```
+
+## Sentiment analysis
+
+After loading all relevant pages, the data gets prepared for the sentiment analysis. It eliminates unnecessary words through an existing stop-word list and the digitalization vocabulary, that is also used as a stop-word list to not include a predetermined sentiment that is assigned to this vocabulary by the lexicon used.
+
+For the sentiment analysis the AFINN lexicon is used, because this study is interested only in whether the text elements on digitalization are rather negative or rather positive. The scale from -5 to 5 allows for further specification and more detail than a binary scale.
+
+```{r analysis preparation}
+
+```
+```{r afinn}
+
+```

@@ -1,5 +1,5 @@
 ---
-title: "main"
+title: "Main sentiment analysis"
 author: "Kim Lea Rothe"
 date: "2023-01-03"
 output: html_document
@@ -16,8 +16,9 @@ library(pdftools)
 library(tidytext)
 library(textdata) 
 library(ggwordcloud)
+library(stringr)
 
-get_sentiments(lexicon = "nrc")
+get_sentiments(lexicon = "afinn")
 
 ```
 
@@ -31,35 +32,142 @@ Another step to take before the iteration is creating an empty dataframe and the
 The iteration, then, loads each document into R, searches the text for the relevant vocabulary and only saves the relevant pages to the dataframe.
 
 ```{r get documents, filter for relevant pages}
-list <- (1:1000)
-i = 1
-#create empty df
+#digitalisation vocabulary in regex format for later use in str_detect()
+vocabulary <- " digital | digitalisation | technologies | technology | automation | internet | online | ict | technical | smart | ai | software | technological | cloud "
+#list with "names" of the downloaded paper (need to be transferred to string before use)
+list <- (1:58)
+#empty data frame to store the solutions
+df <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(df) <- c('name', 'page_number', 'full_text')
 
+#for loop to iterate over each document including the following steps:
+#1.loading document into R and make it readable
+#2.searching the text for the digitalisation vocab
+#3.only load pages into the df created above that match either one of the vocabulary
 for (number in list) {
-  document_name = list[[i]]
+  document_name = list[[number]]
   name = toString(document_name)
-  #load text into R
+  #1.load text into R, prepare for search
   document_path <- here("data-environment",paste0(name))
   document_text <- pdf_text(document_path)
-  #search text for digitalization vocab 
-  #-> output: pages that are concerned with digitalization
-  
-  #add pages that are concerned with digitalization to a df
-  #-> variable1: text; variable2: page number; variable3: text from that page
-  
-  i <- i+1
+  document_text <- unlist(document_text)
+  document_text <- tolower(document_text)
+  #2.search text for digitalisation vocab 
+  res<-data.frame(str_detect(document_text, vocabulary))
+  colnames(res)<-"Result"
+  res<-subset(res,res$Result==TRUE)
+  page_number <- row.names(res)
+  length = length(page_number)
+  if (length > 0) {
+  #3.add pages that are concerned with digitalisation to df
+    full_text <- c()
+    for (page in page_number) {
+      number = as.numeric(page)
+      text = document_text[number]
+      full_text <- append(full_text, text)
+      }
+    working_df <- data.frame(name, page_number, full_text)
+    df <- rbind(df, working_df)
   }
+}
 ```
 
 ## Sentiment analysis
 
-After loading all relevant pages, the data gets prepared for the sentiment analysis. It eliminates unnecessary words through an existing stop-word list and the digitalization vocabulary, that is also used as a stop-word list to not include a predetermined sentiment that is assigned to this vocabulary by the lexicon used.
+After loading all relevant pages, the data gets prepared for the sentiment analysis. It eliminates unnecessary words through an existing stop-word list and the digitalisation vocabulary, that is also used as a stop-word list to not include a predetermined sentiment that is assigned to this vocabulary by the lexicon used.
 
-For the sentiment analysis the AFINN lexicon is used, because this study is interested only in whether the text elements on digitalization are rather negative or rather positive. The scale from -5 to 5 allows for further specification and more detail than a binary scale.
+For the sentiment analysis the AFINN lexicon is used, because this study is interested only in whether the text elements on digitalisation are rather negative or rather positive. The scale from -5 to 5 allows for further specification and more detail than a binary scale.
 
-```{r analysis preparation}
-
+```{r split lines}
+main_df <- df %>% 
+  mutate(full_text = str_split(full_text, pattern = '\\n')) %>% 
+  unnest(full_text) %>% 
+  mutate(full_text = str_trim(full_text)) 
 ```
-```{r afinn}
 
+```{r tokenize}
+df_tokens <- main_df %>% 
+  unnest_tokens(word, full_text)
 ```
+
+```{r stopwords}
+df_stop <- df_tokens %>% 
+  anti_join(stop_words)
+```
+
+```{r skip-numbers}
+df_no_num <- df_stop %>% 
+  filter(is.na(as.numeric(word)))
+```
+
+```{r count-words}
+df_wc <- df_no_num %>% 
+  count(word) %>% 
+  arrange(-n)
+df_wc
+```
+
+```{r bind-afinn}
+df_afinn <- df_no_num %>% 
+  inner_join(get_sentiments("afinn"))
+```
+
+```{r count-afinn}
+df_afinn_hist <- df_afinn %>% 
+  count(value)
+
+ggplot(data = df_afinn_hist, aes(x = value, y = n)) +
+  geom_col()
+```
+
+```{r afinn investigate}
+#looking at the words that count into the rating -2
+df_afinn_neg2 <- df_afinn %>% 
+  filter(value == -2)
+
+unique(df_afinn_neg2$word)
+
+df_afinn_neg2_n <- df_afinn_neg2 %>% 
+  count(word, sort = TRUE) %>% 
+  mutate(word = fct_reorder(factor(word), n))
+
+df_afinn_neg2_top25<- df_afinn_neg2_n %>%
+  head(25)
+
+#plotting the 25 most found words in the rating -2
+ggplot(data = df_afinn_neg2_top25, aes(x = word, y = n)) +
+  geom_col() +
+  coord_flip()
+
+#looking at the words that count into the rating 2
+df_afinn2 <- df_afinn %>% 
+  filter(value == 2)
+
+unique(df_afinn2$word)
+
+df_afinn2_n <- df_afinn2 %>% 
+  count(word, sort = TRUE) %>% 
+  mutate(word = fct_reorder(factor(word), n))
+
+df_afinn2_top25<- df_afinn2_n %>%
+  head(25)
+
+#plotting the 25 most found words with the rating 2
+ggplot(data = df_afinn2_top25, aes(x = word, y = n)) +
+  geom_col() +
+  coord_flip()
+
+#why -2 and 2?
+#-> because -2 is the rating with the highest count in negative words and 2 is the rating with the highest count in positive words
+```
+
+```{r summarize-afinn}
+#look at the statistical summary to get the overall sentiment
+df_summary <- df_afinn %>% 
+  summarize(
+    mean_score = mean(value),
+    median_score = median(value)
+  )
+df_summary
+```
+

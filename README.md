@@ -22,5 +22,5 @@ This folder contains the scraped PDF's from the 20/12/2022.
 ## digitalisation-vocab(.Rmd/.html)
 Here, you will find the analysis of data-digitalisation to identify a digitalisation vocabulary.
 
-##analysis(.Rmd/.html)
+## analysis(.Rmd/.html)
 This is the main anaylsis of the data-environment and the main part of the project including the sentiment analysis and the output figures that can also be found in the folder "figures".
